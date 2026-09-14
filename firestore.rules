@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 檢查使用者是否已登入
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // 檢查是否為該紀錄之擁有者
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // 檢查是否具備管理者權限 (自訂權限 Claim 或 users 集合角色)
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.admin == true || 
+         request.auth.token.role == 'admin' ||
+         request.auth.token.email.matches('.*admin@frailty\\.study.*'));
+    }
+    
+    // 隱私保護驗證：禁止儲存姓名、身分證字號、生日等敏感個人資訊
+    function hasNoSensitiveData() {
+      let data = request.resource.data;
+      return !('name' in data) && 
+             !('nationalId' in data) && 
+             !('idNumber' in data) && 
+             !('birthdate' in data) &&
+             !('birthday' in data);
+    }
+    
+    // 衰弱評估歷史紀錄集合
+    match /assessments/{assessmentId} {
+      // 讀取：一般受試者只能讀取自己 UID 的資料，管理者可讀取全部
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      
+      // 新增：必須為本人、具備知情同意且絕無敏感個資欄位
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.consentGiven == true &&
+                       hasNoSensitiveData();
+      
+      // 更新/刪除：僅限本人或管理者
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // 使用者資訊集合
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+  }
+}
