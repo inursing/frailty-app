@@ -11,6 +11,7 @@ import AuthModal from './components/AuthModal.jsx';
 import ConsentModal from './components/ConsentModal.jsx';
 import LongitudinalTrackingView from './components/LongitudinalTrackingView.jsx';
 import AdminCohortView from './components/AdminCohortView.jsx';
+import AiSitToStandModal from './components/AiSitToStandModal.jsx';
 import Footer from './components/Footer.jsx';
 import { evaluateCriteria, checkUnfilledItems } from './constants/friedCriteria.js';
 import { generateCustomAssessment } from './services/llmService.js';
@@ -70,6 +71,8 @@ export default function App() {
   const [clinicalNotes, setClinicalNotes] = useState('');
   const [isLogicModalOpen, setIsLogicModalOpen] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [isAiCameraModalOpen, setIsAiCameraModalOpen] = useState(false);
+  const [sitToStandResult, setSitToStandResult] = useState(null);
 
   // API Key 本機儲存管理
   const [apiKey, setApiKey] = useState(() => {
@@ -265,8 +268,32 @@ export default function App() {
       });
       setClinicalNotes('');
       setAiReport(null);
+      setSitToStandResult(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  // 套用 AI 視訊 5 次坐站測試成績至評估筆記與狀態
+  const handleApplySitToStandResult = (result) => {
+    setSitToStandResult(result);
+    
+    // 自動將 5XSTS 測量結果格式化追加至臨床筆記 (Clinical Notes)
+    const assessmentNote = `【AI 鏡頭 5次起立坐下測試(5XSTS)】完成耗時 ${result.durationSeconds} 秒，評級為【${result.statusLabel}】(${result.frailtyRisk})。建議指引：${result.recommendation}`;
+    
+    setClinicalNotes((prevNotes) => {
+      const trimmed = (prevNotes || '').trim();
+      if (!trimmed) {
+        return assessmentNote;
+      }
+      // 避免重複加入，若已存在則替換最新成績
+      if (trimmed.includes('【AI 鏡頭 5次起立坐下測試(5XSTS)】')) {
+        return trimmed.replace(/【AI 鏡頭 5次起立坐下測試\(5XSTS\)】[\s\S]*?(?=\n\n|$)/, assessmentNote);
+      }
+      return `${trimmed}\n\n${assessmentNote}`;
+    });
+
+    setSaveSuccessToast(`已成功套用 AI 坐站實測成績 (${result.durationSeconds}秒，${result.statusLabel})`);
+    setTimeout(() => setSaveSuccessToast(null), 4000);
   };
 
   // 開始評估捲動
@@ -341,6 +368,7 @@ export default function App() {
         onOpenLogicModal={() => setIsLogicModalOpen(true)}
         onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
         hasApiKey={Boolean(apiKey && apiKey.length > 5)}
+        onOpenAiCameraModal={() => setIsAiCameraModalOpen(true)}
       />
 
       <main className="app-container" style={{ flex: '1 0 auto', paddingBottom: '3rem' }}>
@@ -375,6 +403,8 @@ export default function App() {
               evaluationResults={evaluationResults}
               onOpenLogicModal={() => setIsLogicModalOpen(true)}
               unfilledItems={unfilledItems}
+              onOpenAiCameraModal={() => setIsAiCameraModalOpen(true)}
+              sitToStandResult={sitToStandResult}
             />
 
             {/* 評估結果與 LLM 客製化報告 */}
@@ -449,6 +479,14 @@ export default function App() {
         onClose={() => setIsApiKeyModalOpen(false)}
         apiKey={apiKey}
         onSaveApiKey={handleSaveApiKey}
+      />
+
+      {/* AI 視訊 5次椅子坐起檢測 Modal */}
+      <AiSitToStandModal
+        isOpen={isAiCameraModalOpen}
+        onClose={() => setIsAiCameraModalOpen(false)}
+        onApplyResult={handleApplySitToStandResult}
+        patientName={currentUser?.subjectId ? `個案 ${currentUser.subjectId}` : '受試長者'}
       />
 
       {/* 頁尾 */}

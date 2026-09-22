@@ -13,7 +13,8 @@ import {
   Sliders,
   Scale,
   Ban,
-  FileQuestion
+  FileQuestion,
+  Video
 } from 'lucide-react';
 import {
   getGripCutoff,
@@ -27,7 +28,9 @@ export default function FriedCriteriaSection({
   onChangeCriteria,
   evaluationResults,
   onOpenLogicModal,
-  unfilledItems = []
+  unfilledItems = [],
+  onOpenAiCameraModal,
+  sitToStandResult
 }) {
   const { gender, height, weight } = basicInfo;
   const { bmi } = calculateBmi(height, weight);
@@ -752,6 +755,52 @@ export default function FriedCriteriaSection({
               使用握力計測量慣用手最大握力 (kg)，依性別與個人 BMI 交叉切點判定（目前切點：<strong>≤ {gripCutoff.cutoff} kg</strong>）。
               <br />
               💡 <strong>臨床實務指引：</strong>若長者因手部關節變形、中風或無握力計，可依 <strong>Fried 原著無法操作直接計 1 分</strong>，或以 SARC-F「提拿 5 公斤重物」問診作為臨床替代依據。
+            </div>
+
+            {/* AI 視訊 5次起立坐下測試輔助按鈕 / 成果提示 */}
+            <div style={{
+              margin: '0.75rem 0',
+              padding: '0.75rem 1rem',
+              backgroundColor: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.5rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Video size={18} color="#0284c7" />
+                <span style={{ fontSize: '0.85rem', color: '#0369a1' }}>
+                  <strong>AI 鏡頭肌力檢測：</strong>
+                  {sitToStandResult ? (
+                    <span>
+                      5次起立坐下實測：<strong>{sitToStandResult.durationSeconds} 秒</strong>（{sitToStandResult.statusLabel}）
+                    </span>
+                  ) : (
+                    <span>現場無握力計？可開啟視訊鏡頭進行「5次椅子坐起測試 (5XSTS)」客觀快篩下肢肌力</span>
+                  )}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={onOpenAiCameraModal}
+                style={{
+                  backgroundColor: '#0284c7',
+                  borderColor: '#0284c7',
+                  color: '#fff',
+                  fontSize: '0.8rem',
+                  padding: '0.35rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <Video size={14} />
+                <span>{sitToStandResult ? '重新檢測' : '啟動 AI 鏡頭檢測'}</span>
+              </button>
             </div>
 
             <div className="criterion-inputs">

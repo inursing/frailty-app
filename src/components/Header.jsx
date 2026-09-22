@@ -11,7 +11,8 @@ import {
   LogOut,
   Shield,
   IdCard,
-  FileCheck2
+  FileCheck2,
+  Video
 } from 'lucide-react';
 
 export default function Header({
@@ -23,7 +24,8 @@ export default function Header({
   onReset,
   onOpenLogicModal,
   onOpenApiKeyModal,
-  hasApiKey
+  hasApiKey,
+  onOpenAiCameraModal
 }) {
   return (
     <header className="app-header">
@@ -145,6 +147,25 @@ export default function Header({
                 <span>登入研究編號</span>
               </button>
             )}
+
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={onOpenAiCameraModal}
+              title="啟動 AI 攝影機 5 次起立坐下下肢肌力與活動度檢測"
+              style={{
+                backgroundColor: '#0284c7',
+                borderColor: '#0284c7',
+                color: '#ffffff',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Video size={15} />
+              <span>AI 視訊肌力測驗</span>
+            </button>
 
             <button
               type="button"
